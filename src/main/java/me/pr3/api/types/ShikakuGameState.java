@@ -3,19 +3,23 @@ package me.pr3.api.types;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author tim
  */
 public class ShikakuGameState {
     public ShikakuGame state;
-    public List<Rectangle> unsuccessfulRectangles;
+    public List<Rectangle> rectanglesTriedBefore;
     public Point lastTriedNumber;
+    public List<Map.Entry<Point, Integer>> entries;
 
-    public ShikakuGameState(ShikakuGame state, List<Rectangle> unsuccessfulRectangles, Point lastTriedNumber) {
+
+    public ShikakuGameState(ShikakuGame state, List<Rectangle> rectanglesTriedBefore, Point lastTriedNumber, List<Map.Entry<Point, Integer>> entries) {
         this.state = state;
-        this.unsuccessfulRectangles = unsuccessfulRectangles;
+        this.rectanglesTriedBefore = rectanglesTriedBefore;
         this.lastTriedNumber = lastTriedNumber;
+        this.entries = entries;
     }
 
     public ShikakuGame getState() {
@@ -26,12 +30,12 @@ public class ShikakuGameState {
         this.state = state;
     }
 
-    public List<Rectangle> getUnsuccessfulRectangles() {
-        return unsuccessfulRectangles;
+    public List<Rectangle> getRectanglesTriedBefore() {
+        return rectanglesTriedBefore;
     }
 
-    public void setUnsuccessfulRectangles(List<Rectangle> unsuccessfulRectangles) {
-        this.unsuccessfulRectangles = unsuccessfulRectangles;
+    public void setRectanglesTriedBefore(List<Rectangle> rectanglesTriedBefore) {
+        this.rectanglesTriedBefore = rectanglesTriedBefore;
     }
 
     public Point getLastTriedNumber() {
@@ -40,5 +44,13 @@ public class ShikakuGameState {
 
     public void setLastTriedNumber(Point lastTriedNumber) {
         this.lastTriedNumber = lastTriedNumber;
+    }
+
+    public List<Map.Entry<Point, Integer>> getEntries() {
+        return entries;
+    }
+
+    public void setEntries(List<Map.Entry<Point, Integer>> entries) {
+        this.entries = entries;
     }
 }

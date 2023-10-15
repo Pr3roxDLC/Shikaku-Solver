@@ -18,9 +18,9 @@ public class BasicSolver implements ISolver {
 
     @Override
     public void solve(ShikakuGame game) {
-        List<Map.Entry<Point, Integer>> entries = new ArrayList<>(game.numbers.entrySet());
-        entries.sort(Comparator.<Map.Entry<Point, Integer>>comparingInt(Map.Entry::getValue).reversed());
-        Set<Integer> usedNumbers = entries.stream().map(Map.Entry::getValue).collect(Collectors.toSet());
+        List<Map.Entry<Point, Integer>> initialEntries = new ArrayList<>(game.numbers.entrySet());
+        initialEntries.sort(Comparator.<Map.Entry<Point, Integer>>comparingInt(Map.Entry::getValue).reversed());
+        Set<Integer> usedNumbers = initialEntries.stream().map(Map.Entry::getValue).collect(Collectors.toSet());
         Map<Integer, List<Rectangle>> possiblePlacements = new HashMap<>();
 
         Rectangle bounds = new Rectangle(game.bounds);
@@ -50,20 +50,52 @@ public class BasicSolver implements ISolver {
         }
 
         Stack<ShikakuGameState> ambiguousSteps = new Stack<>();
+
+        List<Map.Entry<Point, Integer>> currentEntries = new ArrayList<>(initialEntries);
         boolean addedNewRect = true;
-        while (!entries.isEmpty()) {
+        while (!currentEntries.isEmpty()) {
             //If we dont have any unambiguous rectangles to fill we have to take a guess
             // if this happens, we push a copy of the current game state to a stack, so that if we reach a dead end
             // we can revert the step and try a different move until we run out of possible moves at which we will go
             // back another step and repeat
             if(!addedNewRect){
-                Map.Entry<Point, Integer> biggestEntry = entries.get(0);
+                Map.Entry<Point, Integer> biggestEntry = currentEntries.get(0);
 
                 ShikakuGame clonedGame = game.clone();
                 if(ambiguousSteps.isEmpty()){
-                    ambiguousSteps.push(new ShikakuGameState(clonedGame, new ArrayList<>(), biggestEntry.getKey()));
+                    ambiguousSteps.push(new ShikakuGameState(clonedGame, new ArrayList<>(), biggestEntry.getKey(), currentEntries));
                 }else{
+                    List<Rectangle> allPossiblePlacementsForBiggestEntry = possiblePlacements.get(biggestEntry.getValue());
                     ShikakuGameState lastPushedState = ambiguousSteps.pop();
+                    //Check if we haven't tried all possible placements for currently the biggest entry yet
+                    if(lastPushedState.rectanglesTriedBefore.size() != allPossiblePlacementsForBiggestEntry.size()){
+                        //Get next rectangle and check if it is valid
+                        Rectangle rectangle = allPossiblePlacementsForBiggestEntry.get(lastPushedState.rectanglesTriedBefore.size());
+                        Rectangle translatedRectangle = (Rectangle) rectangle.clone();
+                        translatedRectangle.translate(biggestEntry.getKey().x, biggestEntry.getKey().y);
+
+                        List<Point> points = new ArrayList<>(currentEntries.stream().map(Map.Entry::getKey).toList());
+                        points.remove(biggestEntry.getKey());
+
+                        if(checkIfRectangleIsValid(clonedGame, translatedRectangle, points, bounds)){
+                            System.out.println("Added Valid Ambiguous Rectangle: " + translatedRectangle);
+                            game.rectangles.add(translatedRectangle);
+                            currentEntries.remove(biggestEntry);
+                            lastPushedState.state = game.clone();
+                            lastPushedState.rectanglesTriedBefore.add(rectangle);
+                            ambiguousSteps.push(lastPushedState);
+                            ambiguousSteps.push(new ShikakuGameState(game.clone(), new ArrayList<>(), currentEntries.get(0).getKey(), currentEntries));
+                            continue;
+                        }
+                        lastPushedState.state = game.clone();
+                        lastPushedState.rectanglesTriedBefore.add(rectangle);
+                        ambiguousSteps.push(lastPushedState);
+                    }else{
+                        System.out.println("Dropped Last Ambiguous Placement");
+                        game = lastPushedState.state;
+                        currentEntries = lastPushedState.entries;
+                        continue;
+                    }
 
                 }
 
@@ -72,10 +104,10 @@ public class BasicSolver implements ISolver {
             //Find unambiguous rectangles and fill them in
             addedNewRect = false;
             List<Map.Entry<Point, Integer>> pointsToRemove = new ArrayList<>();
-            for (Map.Entry<Point, Integer> entry : entries) {
+            for (Map.Entry<Point, Integer> entry : currentEntries) {
                 boolean isUnambiguous = false;
 
-                List<Point> points = new ArrayList<>(entries.stream().map(Map.Entry::getKey).toList());
+                List<Point> points = new ArrayList<>(currentEntries.stream().map(Map.Entry::getKey).toList());
                 points.remove(entry.getKey());
                 List<Rectangle> validRectangles = new ArrayList<>();
 
@@ -105,9 +137,9 @@ public class BasicSolver implements ISolver {
             }
 
             for (Map.Entry<Point, Integer> entry : pointsToRemove) {
-                entries.remove(entry);
+                currentEntries.remove(entry);
             }
-            System.out.println("Iteration End");
+          //  System.out.println("Iteration End");
         }
     }
 
