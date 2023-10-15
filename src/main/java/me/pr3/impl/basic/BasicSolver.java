@@ -2,6 +2,7 @@ package me.pr3.impl.basic;
 
 import me.pr3.api.ISolver;
 import me.pr3.api.types.ShikakuGame;
+import me.pr3.api.types.ShikakuGameState;
 
 import java.awt.*;
 import java.util.*;
@@ -31,12 +32,14 @@ public class BasicSolver implements ISolver {
             // problem
             for (int x = 0; x <= number; x++) {
                 for (int y = 0; y <= number; y++) {
-                    if(x * y == number){
-                        if(debug)System.out.println("Found Valid rectangle: x: " + x + " y: " + y + " for number: " + number );
+                    if (x * y == number) {
+                        if (debug)
+                            System.out.println("Found Valid rectangle: x: " + x + " y: " + y + " for number: " + number);
                         //Get all offsets
                         for (int xOffset = 0; xOffset < x; xOffset++) {
                             for (int yOffset = 0; yOffset < y; yOffset++) {
-                                if(debug)System.out.println("Adding rectangle: " + new Rectangle(-xOffset, -yOffset, x, y));
+                                if (debug)
+                                    System.out.println("Adding rectangle: " + new Rectangle(-xOffset, -yOffset, x, y));
                                 possiblePlacements.get(number).add(new Rectangle(-xOffset, -yOffset, x, y));
                             }
                         }
@@ -46,49 +49,92 @@ public class BasicSolver implements ISolver {
 
         }
 
-        for (Map.Entry<Point, Integer> entry : entries) {
-            boolean isUnambiguous = false;
+        Stack<ShikakuGameState> ambiguousSteps = new Stack<>();
+        boolean addedNewRect = true;
+        while (!entries.isEmpty()) {
+            //If we dont have any unambiguous rectangles to fill we have to take a guess
+            // if this happens, we push a copy of the current game state to a stack, so that if we reach a dead end
+            // we can revert the step and try a different move until we run out of possible moves at which we will go
+            // back another step and repeat
+            if(!addedNewRect){
+                Map.Entry<Point, Integer> biggestEntry = entries.get(0);
 
-            List<Point> points = new ArrayList<>(entries.stream().map(Map.Entry::getKey).toList());
-            points.remove(entry.getKey());
-            List<Rectangle> validRectangles = new ArrayList<>();
+                ShikakuGame clonedGame = game.clone();
+                if(ambiguousSteps.isEmpty()){
+                    ambiguousSteps.push(new ShikakuGameState(clonedGame, new ArrayList<>(), biggestEntry.getKey()));
+                }else{
+                    ShikakuGameState lastPushedState = ambiguousSteps.pop();
 
-            for (Rectangle rectangle : possiblePlacements.get(entry.getValue())) {
-                Rectangle translatedRectangle = (Rectangle) rectangle.clone();
-                translatedRectangle.translate(entry.getKey().x, entry.getKey().y);
+                }
 
-              //Check for bounds
-                if(bounds.union(translatedRectangle).equals(bounds)){
-                    boolean intersectsWithPoints = false;
-                    for (Point point : points) {
-                        //Check for intersection with other numbers
-                        if(translatedRectangle.contains(point))intersectsWithPoints = true;
-                    }
-                    if(intersectsWithPoints)continue;
-                    boolean intersectWithOtherRectangle = false;
-                    for (Rectangle otherRectangle : game.rectangles) {
-                        //Check for interaction with other rectangles
-                        if(translatedRectangle.intersects(otherRectangle)){
-                            intersectWithOtherRectangle = true;
-                        }
-                    }
-                    if(!intersectWithOtherRectangle){
+            }
+
+            //Find unambiguous rectangles and fill them in
+            addedNewRect = false;
+            List<Map.Entry<Point, Integer>> pointsToRemove = new ArrayList<>();
+            for (Map.Entry<Point, Integer> entry : entries) {
+                boolean isUnambiguous = false;
+
+                List<Point> points = new ArrayList<>(entries.stream().map(Map.Entry::getKey).toList());
+                points.remove(entry.getKey());
+                List<Rectangle> validRectangles = new ArrayList<>();
+
+                //Check all possible placements for the current entry and create a list of all placements that would
+                // be valid
+                for (Rectangle rectangle : possiblePlacements.get(entry.getValue())) {
+                    Rectangle translatedRectangle = (Rectangle) rectangle.clone();
+                    translatedRectangle.translate(entry.getKey().x, entry.getKey().y);
+
+                    if (!checkIfRectangleIsValid(game, translatedRectangle, points, bounds)) {
                         validRectangles.add(translatedRectangle);
                     }
                 }
+
+                //If we have exactly one valid placement, we know that the placement is unambiguous and we can therefor
+                // add it to our game
+                if (validRectangles.size() == 1) {
+                    System.out.println("Found Unambiguous Rectangle Placement: " + validRectangles.get(0));
+                    isUnambiguous = true;
+                }
+
+                if (isUnambiguous) {
+                    addedNewRect = true;
+                    game.rectangles.add(validRectangles.get(0));
+                    pointsToRemove.add(entry);
+                }
             }
 
-            if(validRectangles.size() == 1){
-                System.out.println("Found Unambiguous Rectangle Placement: " + validRectangles.get(0));
+            for (Map.Entry<Point, Integer> entry : pointsToRemove) {
+                entries.remove(entry);
             }
-
+            System.out.println("Iteration End");
         }
+    }
 
+    private boolean checkIfRectangleIsValid(ShikakuGame game, Rectangle rectangle, Collection<Point> points, Rectangle bounds){
 
+        //Check for bounds
+        if (!bounds.union(rectangle).equals(bounds)) return false;
+
+        //Check for intersection with other numbers
+        boolean intersectsWithPoints = false;
+        for (Point point : points) {
+            if (rectangle.contains(point)) intersectsWithPoints = true;
+        }
+        if (intersectsWithPoints) return false;
+
+        //Check for interaction with other rectangles
+        boolean intersectWithOtherRectangle = false;
+        for (Rectangle otherRectangle : game.rectangles) {
+            if (rectangle.intersects(otherRectangle)) {
+                intersectWithOtherRectangle = true;
+            }
+        }
+        return !intersectWithOtherRectangle;
     }
 
 
-    public void enableDebug(){
+    public void enableDebug() {
         this.debug = true;
     }
 }
