@@ -2,8 +2,7 @@ package me.pr3;
 
 import me.pr3.api.ShikakuGameFactory;
 import me.pr3.api.types.ShikakuGame;
-import me.pr3.impl.basic.BasicSolver;
-import me.pr3.impl.basic.BasicSolverRewrite;
+import me.pr3.impl.basic.BasicSolverRewriteRewrite;
 
 import java.awt.*;
 import java.time.Duration;
@@ -19,7 +18,7 @@ public class Main {
 
         shikakuGame.printBoard();
 
-        BasicSolverRewrite basicSolver = new BasicSolverRewrite();
+        BasicSolverRewriteRewrite basicSolver = new BasicSolverRewriteRewrite();
 
         Instant begin = Instant.now();
         basicSolver.solve(shikakuGame);

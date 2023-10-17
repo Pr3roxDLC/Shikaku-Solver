@@ -4,18 +4,19 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author tim
  */
 public class ShikakuGameState {
     public ShikakuGame state;
-    public List<Rectangle> rectanglesTriedBefore;
+    public Set<Rectangle> rectanglesTriedBefore;
     public Point lastTriedNumber;
     public List<Map.Entry<Point, Integer>> entries;
 
 
-    public ShikakuGameState(ShikakuGame state, List<Rectangle> rectanglesTriedBefore, Point lastTriedNumber, List<Map.Entry<Point, Integer>> entries) {
+    public ShikakuGameState(ShikakuGame state, Set<Rectangle> rectanglesTriedBefore, Point lastTriedNumber, List<Map.Entry<Point, Integer>> entries) {
         this.state = state;
         this.rectanglesTriedBefore = rectanglesTriedBefore;
         this.lastTriedNumber = lastTriedNumber;
@@ -30,11 +31,11 @@ public class ShikakuGameState {
         this.state = state;
     }
 
-    public List<Rectangle> getRectanglesTriedBefore() {
+    public Set<Rectangle> getRectanglesTriedBefore() {
         return rectanglesTriedBefore;
     }
 
-    public void setRectanglesTriedBefore(List<Rectangle> rectanglesTriedBefore) {
+    public void setRectanglesTriedBefore(Set<Rectangle> rectanglesTriedBefore) {
         this.rectanglesTriedBefore = rectanglesTriedBefore;
     }
 
