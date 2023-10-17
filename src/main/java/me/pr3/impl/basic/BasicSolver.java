@@ -21,33 +21,11 @@ public class BasicSolver implements ISolver {
         List<Map.Entry<Point, Integer>> initialEntries = new ArrayList<>(game.numbers.entrySet());
         initialEntries.sort(Comparator.<Map.Entry<Point, Integer>>comparingInt(Map.Entry::getValue).reversed());
         Set<Integer> usedNumbers = initialEntries.stream().map(Map.Entry::getValue).collect(Collectors.toSet());
-        Map<Integer, List<Rectangle>> possiblePlacements = new HashMap<>();
-
-        Rectangle bounds = new Rectangle(game.bounds);
 
         //Pre-Generate All Possible Placements for every number used on the board
-        for (Integer number : usedNumbers) {
-            possiblePlacements.put(number, new ArrayList<>());
-            //I'm sure there is a better way to calculate this, but it works and only runs once per solve so its no big
-            // problem
-            for (int x = 0; x <= number; x++) {
-                for (int y = 0; y <= number; y++) {
-                    if (x * y == number) {
-                        if (debug)
-                            System.out.println("Found Valid rectangle: x: " + x + " y: " + y + " for number: " + number);
-                        //Get all offsets
-                        for (int xOffset = 0; xOffset < x; xOffset++) {
-                            for (int yOffset = 0; yOffset < y; yOffset++) {
-                                if (debug)
-                                    System.out.println("Adding rectangle: " + new Rectangle(-xOffset, -yOffset, x, y));
-                                possiblePlacements.get(number).add(new Rectangle(-xOffset, -yOffset, x, y));
-                            }
-                        }
-                    }
-                }
-            }
+        Map<Integer, List<Rectangle>> possiblePlacements = getAllPossiblePlacements(usedNumbers);
 
-        }
+        Rectangle bounds = new Rectangle(game.bounds);
 
         Stack<ShikakuGameState> ambiguousSteps = new Stack<>();
 
@@ -58,17 +36,18 @@ public class BasicSolver implements ISolver {
             // if this happens, we push a copy of the current game state to a stack, so that if we reach a dead end
             // we can revert the step and try a different move until we run out of possible moves at which we will go
             // back another step and repeat
-            if(!addedNewRect){
+            if (!addedNewRect) {
                 Map.Entry<Point, Integer> biggestEntry = currentEntries.get(0);
 
                 ShikakuGame clonedGame = game.clone();
-                if(ambiguousSteps.isEmpty()){
-                    ambiguousSteps.push(new ShikakuGameState(clonedGame, new ArrayList<>(), biggestEntry.getKey(), currentEntries));
-                }else{
+                if (ambiguousSteps.isEmpty()) {
+                    //     System.out.println("Added First Ambiguous Placement");
+                    ambiguousSteps.push(new ShikakuGameState(clonedGame, new ArrayList<>(), biggestEntry.getKey(), new ArrayList<>(currentEntries)));
+                } else {
                     List<Rectangle> allPossiblePlacementsForBiggestEntry = possiblePlacements.get(biggestEntry.getValue());
                     ShikakuGameState lastPushedState = ambiguousSteps.pop();
                     //Check if we haven't tried all possible placements for currently the biggest entry yet
-                    if(lastPushedState.rectanglesTriedBefore.size() != allPossiblePlacementsForBiggestEntry.size()){
+                    if (lastPushedState.rectanglesTriedBefore.size() != allPossiblePlacementsForBiggestEntry.size()) {
                         //Get next rectangle and check if it is valid
                         Rectangle rectangle = allPossiblePlacementsForBiggestEntry.get(lastPushedState.rectanglesTriedBefore.size());
                         Rectangle translatedRectangle = (Rectangle) rectangle.clone();
@@ -76,24 +55,28 @@ public class BasicSolver implements ISolver {
 
                         List<Point> points = new ArrayList<>(currentEntries.stream().map(Map.Entry::getKey).toList());
                         points.remove(biggestEntry.getKey());
-
-                        if(checkIfRectangleIsValid(clonedGame, translatedRectangle, points, bounds)){
+                        System.out.println("Checking for Valid Placement: " + lastPushedState.rectanglesTriedBefore.size() + " out of: " + allPossiblePlacementsForBiggestEntry.size());
+                        if (checkIfRectangleIsValid(clonedGame, translatedRectangle, points, bounds)) {
                             System.out.println("Added Valid Ambiguous Rectangle: " + translatedRectangle);
                             game.rectangles.add(translatedRectangle);
                             currentEntries.remove(biggestEntry);
                             lastPushedState.state = game.clone();
                             lastPushedState.rectanglesTriedBefore.add(rectangle);
                             ambiguousSteps.push(lastPushedState);
-                            ambiguousSteps.push(new ShikakuGameState(game.clone(), new ArrayList<>(), currentEntries.get(0).getKey(), currentEntries));
+                            ambiguousSteps.push(new ShikakuGameState(game.clone(), new ArrayList<>(), currentEntries.get(0).getKey(), new ArrayList<>(currentEntries)));
+                            addedNewRect = true;
                             continue;
                         }
+                        System.out.println("Tried unsuccessful Rectangle");
                         lastPushedState.state = game.clone();
                         lastPushedState.rectanglesTriedBefore.add(rectangle);
+                        lastPushedState.entries = new ArrayList<>(currentEntries);
                         ambiguousSteps.push(lastPushedState);
-                    }else{
+                    } else {
                         System.out.println("Dropped Last Ambiguous Placement");
                         game = lastPushedState.state;
-                        currentEntries = lastPushedState.entries;
+                        currentEntries = new ArrayList<>(lastPushedState.entries);
+                        addedNewRect = true;
                         continue;
                     }
 
@@ -139,11 +122,38 @@ public class BasicSolver implements ISolver {
             for (Map.Entry<Point, Integer> entry : pointsToRemove) {
                 currentEntries.remove(entry);
             }
-          //  System.out.println("Iteration End");
+            //  System.out.println("Iteration End");
         }
     }
 
-    private boolean checkIfRectangleIsValid(ShikakuGame game, Rectangle rectangle, Collection<Point> points, Rectangle bounds){
+    private Map<Integer, List<Rectangle>> getAllPossiblePlacements(Set<Integer> usedNumbers) {
+        Map<Integer, List<Rectangle>> possiblePlacements = new HashMap<>();
+        for (Integer number : usedNumbers) {
+            possiblePlacements.put(number, new ArrayList<>());
+            //I'm sure there is a better way to calculate this, but it works and only runs once per solve so its no big
+            // problem
+            for (int x = 0; x <= number; x++) {
+                for (int y = 0; y <= number; y++) {
+                    if (x * y == number) {
+                        if (debug)
+                            System.out.println("Found Valid rectangle: x: " + x + " y: " + y + " for number: " + number);
+                        //Get all offsets
+                        for (int xOffset = 0; xOffset < x; xOffset++) {
+                            for (int yOffset = 0; yOffset < y; yOffset++) {
+                                if (debug)
+                                    System.out.println("Adding rectangle: " + new Rectangle(-xOffset, -yOffset, x, y));
+                                possiblePlacements.get(number).add(new Rectangle(-xOffset, -yOffset, x, y));
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+        return possiblePlacements;
+    }
+
+    private boolean checkIfRectangleIsValid(ShikakuGame game, Rectangle rectangle, Collection<Point> points, Rectangle bounds) {
 
         //Check for bounds
         if (!bounds.union(rectangle).equals(bounds)) return false;

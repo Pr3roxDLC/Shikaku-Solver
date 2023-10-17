@@ -45,9 +45,9 @@ public class ShikakuGame implements Cloneable{
     }
 
     public void printBoard(){
-        String[][] board = new String[10][10];
+        String[][] board = new String[bounds.height][bounds.width];
         for (String[] strings : board) {
-            Arrays.fill(strings, 0, 10, "  ");
+            Arrays.fill(strings, 0, bounds.width, "  ");
         }
         numbers.forEach((point, integer) -> {
             board[point.y][point.x] = integer >= 10 ? integer.toString() : " " + integer;
