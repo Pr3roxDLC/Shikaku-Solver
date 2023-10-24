@@ -2,7 +2,8 @@ package me.pr3;
 
 import me.pr3.api.ShikakuGameFactory;
 import me.pr3.api.types.ShikakuGame;
-import me.pr3.impl.basic.BasicSolverRewriteRewrite;
+import me.pr3.api.ui.ShikakuGamePainter;
+import me.pr3.impl.basic.BasicRecursiveSolver;
 
 import java.awt.*;
 import java.time.Duration;
@@ -14,19 +15,24 @@ import java.util.Arrays;
  */
 public class Main {
     public static void main(String[] args) {
-        ShikakuGame shikakuGame = ShikakuGameFactory.generateGame(new Dimension(10, 10), 100);
+        ShikakuGame shikakuGame = ShikakuGameFactory.generateGame(new Dimension(40, 40), 500);
 
         shikakuGame.printBoard();
 
-        BasicSolverRewriteRewrite basicSolver = new BasicSolverRewriteRewrite();
+        BasicRecursiveSolver basicSolver = new BasicRecursiveSolver();
 
         Instant begin = Instant.now();
-        basicSolver.solve(shikakuGame);
+        ShikakuGame solvedGame = basicSolver.solve(shikakuGame);
         Instant end = Instant.now();
 
-        System.out.println("Solve took: " + Duration.between(begin, end).toMillis() + "ms isSolved:" + shikakuGame.isSolved());
+        System.out.println("Solve took: " + Duration.between(begin, end).toMillis() + "ms isSolved:" + solvedGame.isSolved());
 
-        doDebugOutput(shikakuGame);
+        doDebugOutput(solvedGame);
+
+        ShikakuGamePainter shikakuGamePainter = new ShikakuGamePainter();
+        shikakuGamePainter.preparePaint(solvedGame);
+        shikakuGamePainter.repaint();
+
 
     }
 

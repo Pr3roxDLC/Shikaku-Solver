@@ -7,6 +7,6 @@ import me.pr3.api.types.ShikakuGame;
  */
 public interface ISolver {
 
-    void solve(ShikakuGame game);
+    ShikakuGame solve(ShikakuGame game);
 
 }
